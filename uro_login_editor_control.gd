@@ -8,8 +8,8 @@ var vbox_container : VBoxContainer = null
 var sign_in_label : Label = null
 
 var sign_in_vbox_container : VBoxContainer = null
-var email_or_username_label : Label = null
-var email_or_username_lineedit : LineEdit = null
+var username_or_email_label : Label = null
+var username_or_email_lineedit : LineEdit = null
 var password_label : Label = null
 var password_lineedit : LineEdit = null
 
@@ -17,13 +17,13 @@ var submit_button : Button = null
 var result_label : Label = null
 
 func sign_in_submission_sent() -> void:
-	email_or_username_lineedit.editable = false
+	username_or_email_lineedit.editable = false
 	password_lineedit.editable = false
 	
 	submit_button.disabled = true
 	
 func sign_in_submission_complete(p_result) -> void:
-	email_or_username_lineedit.editable = true
+	username_or_email_lineedit.editable = true
 	password_lineedit.editable = true
 	
 	submit_button.disabled = false
@@ -35,10 +35,10 @@ func sign_in_submission_complete(p_result) -> void:
 		result_label.set_text("")
 
 func submit_button_pressed() -> void:
-	var email_or_username : String = email_or_username_lineedit.text
+	var username_or_email : String = username_or_email_lineedit.text
 	var password : String = password_lineedit.text
 	
-	GodotUro.sign_in(email_or_username, password)
+	GodotUro.sign_in(username_or_email, password)
 	
 func _init() -> void:
 	vbox_container = VBoxContainer.new()
@@ -55,10 +55,10 @@ func _init() -> void:
 	sign_in_vbox_container.alignment = VBoxContainer.ALIGN_CENTER
 	sign_in_vbox_container.size_flags_vertical = SIZE_EXPAND_FILL
 	
-	email_or_username_label = Label.new()
-	email_or_username_label.set_text("Email/Username")
+	username_or_email_label = Label.new()
+	username_or_email_label.set_text("Email/Username")
 	
-	email_or_username_lineedit = LineEdit.new()
+	username_or_email_lineedit = LineEdit.new()
 	
 	password_label = Label.new()
 	password_label.set_text("Password")
@@ -66,8 +66,8 @@ func _init() -> void:
 	password_lineedit = LineEdit.new()
 	password_lineedit.secret = true
 	
-	sign_in_vbox_container.add_child(email_or_username_label)
-	sign_in_vbox_container.add_child(email_or_username_lineedit)
+	sign_in_vbox_container.add_child(username_or_email_label)
+	sign_in_vbox_container.add_child(username_or_email_lineedit)
 	sign_in_vbox_container.add_child(password_label)
 	sign_in_vbox_container.add_child(password_lineedit)
 	

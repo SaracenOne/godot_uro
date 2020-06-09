@@ -32,7 +32,7 @@ enum SymbolicErrors {
 func cancel() -> void:
 	yield(requestor.cancel(), "completed")
 
-func sign_in(email_or_username : String, password : String) -> String:
+func sign_in(username_or_email : String, password : String) -> String:
 	# Make sure to use SSL!
 	var host : String = ""
 	var port : int = 0
@@ -45,7 +45,7 @@ func sign_in(email_or_username : String, password : String) -> String:
 		port = uro_port
 		
 	var query = {
-		"user[username_or_email]": email_or_username,
+		"user[username_or_email]": username_or_email,
 		"user[password]": password,
 	}
 	

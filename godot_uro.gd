@@ -22,13 +22,13 @@ func logout():
 	
 	emit_signal("logout")
 
-func sign_in(email_or_username : String, password : String) -> void:
+func sign_in(username_or_email : String, password : String) -> void:
 	if godot_uro_auth:
 		if godot_uro_auth.busy:
 			return
 		
 		emit_signal("sign_in_submission_sent")
-		var token : String = yield(godot_uro_auth.sign_in(email_or_username, password), "completed")
+		var token : String = yield(godot_uro_auth.sign_in(username_or_email, password), "completed")
 		
 		if token != "":
 			cfg.set_value("api", "token", token)
