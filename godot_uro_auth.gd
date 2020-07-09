@@ -63,7 +63,8 @@ func sign_in(username_or_email : String, password : String) -> String:
 		var data : Dictionary = result_dict.output.data
 		if result_dict.error_code == SymbolicErrors.OK:
 			if data.has("access_token"):
-				token = data["access_token"]
+				if typeof(data["access_token"]) == TYPE_STRING:
+					token = data["access_token"]
 			
 	return token
 	
