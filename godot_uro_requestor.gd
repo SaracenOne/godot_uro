@@ -1,6 +1,6 @@
 extends Reference
 
-signal completed
+signal completed(p_result)
 
 const YIELD_PERIOD_MS = 50
 
