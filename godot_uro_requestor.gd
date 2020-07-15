@@ -43,6 +43,14 @@ func _init(p_hostname : String, p_port : int = -1, p_use_ssl : bool = true) -> v
 	
 	has_enhanced_qs_from_dict = http.query_string_from_dict({"a": null}) == "a"
 
+func cancel():
+	if busy:
+		print("uro request cancelled!")
+		cancelled = true
+	else:
+		call_deferred("emit_signal", "completed", null)
+	yield(self, "completed")
+
 func close() -> void:
 	terminated = true
 	http.close()
@@ -73,6 +81,13 @@ func request(p_path, p_payload, p_options : Dictionary = DEFAULT_OPTIONS) -> voi
 					return
 				http.poll()
 				status = http.get_status()
+				
+				if cancelled:
+					cancelled = false
+					busy = false
+					emit_signal("completed", null)
+					return
+				
 				if status in [
 					HTTPClient.STATUS_CANT_CONNECT,
 					HTTPClient.STATUS_CANT_RESOLVE,

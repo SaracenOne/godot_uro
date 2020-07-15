@@ -31,6 +31,8 @@ enum SymbolicErrors {
 	NOT_AUTHORIZED
 }
 
+signal completed(p_result)
+
 func cancel() -> void:
 	yield(requestor.cancel(), "completed")
 
@@ -76,6 +78,7 @@ func sign_in(username_or_email : String, password : String) -> String:
 				if typeof(data["access_token"]) == TYPE_STRING:
 					token = data["access_token"]
 			
+	emit_signal("completed", token)
 	return token
 	
 func create_shard(port : int, map : String, max_players : int) -> String:
@@ -87,7 +90,7 @@ func create_shard(port : int, map : String, max_players : int) -> String:
 		"shard[max_users]": max_players
 	}
 	
-	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
+	requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
 	
 	requestor.call_deferred("request", get_api_path() + SHARDS_PATH, query, {"method": HTTPClient.METHOD_POST, "encoding": "form"})
 	var result = yield(requestor, "completed")
@@ -104,16 +107,16 @@ func create_shard(port : int, map : String, max_players : int) -> String:
 				if typeof(data["data"]) == TYPE_STRING:
 					id = data["data"]
 			
+	emit_signal("completed", id)
 	return id
 	
-func delete_shard(p_id : String, port : int) -> bool:
+func delete_shard(p_id : String) -> bool:
 	var host_and_port : Dictionary = get_host_and_port()
 		
 	var query = {
-		"shard[port]": str(port),
 	}
 	
-	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
+	requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
 	
 	requestor.call_deferred("request", get_api_path() + SHARDS_PATH + "/" + p_id, query, {"method": HTTPClient.METHOD_DELETE, "encoding": "form"})
 	var result = yield(requestor, "completed")
@@ -122,15 +125,40 @@ func delete_shard(p_id : String, port : int) -> bool:
 	
 	var result_dict : Dictionary = _handle_result(result)
 	
+	emit_signal("completed", null)
 	return true
 	
-func get_shards() -> void:
+static func process_shards_json(p_input) -> Dictionary:
+	var result_dict : Dictionary = {}
+	var new_shards : Array = []
+	
+	var output = p_input.get("output")
+	if output is Dictionary:
+		var data = output.get("data")
+		if data is Dictionary:
+			var shards = data.get("shards")
+			if shards is Array:
+				for shard in shards:
+					if shard is Dictionary:
+						var new_shard : Dictionary
+						new_shard.address = shard.get("address", "")
+						new_shard.port = shard.get("port", -1)
+						new_shard.map = shard.get("map", "")
+						new_shard.current_users = shard.get("current_users", 0)
+						new_shard.max_users = shard.get("max_users", 0)
+						new_shards.push_back(new_shard)
+	
+	result_dict.error_code = p_input.error_code
+	result_dict.shards = new_shards
+	return result_dict
+	
+func get_shards() -> Dictionary:
 	var host_and_port : Dictionary = get_host_and_port()
 		
 	var query = {
 	}
 	
-	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
+	requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, using_ssl())
 	
 	requestor.call_deferred("request", get_api_path() + SHARDS_PATH, query, {"method": HTTPClient.METHOD_GET, "encoding": "form"})
 	var result = yield(requestor, "completed")
@@ -138,8 +166,10 @@ func get_shards() -> void:
 	busy = false
 	
 	var result_dict : Dictionary = _handle_result(result)
+	result_dict = process_shards_json(result_dict)
 	
-	return true
+	
+	return result_dict
 	
 func setup_configuration() -> void:
 	if !ProjectSettings.has_setting("services/uro/use_localhost"):
@@ -175,7 +205,7 @@ func _handle_result(result) -> Dictionary:
 		result_dict.error_code = SymbolicErrors.NOT_AUTHORIZED
 		return result_dict
 	elif kind == 5:
-		OS.alert('Server error. Try again later.', 'Error')
+		OS.alert('Server error: ' + str(result.code))
 		result_dict.error_code = SymbolicErrors.FAILED
 		return result_dict
 

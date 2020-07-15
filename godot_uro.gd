@@ -12,8 +12,10 @@ const uro_login_editor_dialog_const = preload("uro_login_editor_dialog.gd")
 var uro_login_editor_dialog : uro_login_editor_dialog_const = null
 
 signal sign_in_submission_sent()
-signal sign_in_submission_complete(result)
+signal sign_in_submission_complete(p_result)
 signal logout()
+
+signal request_shard_list_callback(p_result)
 
 func logout():
 	godot_uro_api.token = ""
@@ -38,9 +40,16 @@ func sign_in(username_or_email : String, password : String) -> void:
 			logout()
 			emit_signal("sign_in_submission_complete", FAILED)
 
-func update_shard_user_count(p_count : int) -> void:
-	pass
 
+func request_shard_list() -> void:
+	if godot_uro_api:
+		if godot_uro_api.busy:
+			emit_signal("request_shard_list_callback", Dictionary())
+			return Dictionary()
+			
+	var result = yield(godot_uro_api.get_shards(), "completed")
+	emit_signal("request_shard_list_callback", result)
+	
 func show_login_dialog() -> void:
 	if Engine.is_editor_hint():
 		if uro_login_editor_dialog:
