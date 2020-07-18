@@ -1,15 +1,18 @@
 extends Node
 tool
 
+const godot_uro_helper_const = preload("godot_uro_helper.gd")
+
 var cfg : ConfigFile = null
+
+var use_localhost : bool = true
+var uro_host : String = godot_uro_helper_const.DEFAULT_URO_HOST
+var uro_port : int = godot_uro_helper_const.DEFAULT_URO_PORT
 
 const CONFIG_FILE_PATH = "user://uro.ini"
 const godot_uro_api_const = preload("godot_uro_api.gd")
 
 var godot_uro_api : godot_uro_api_const = null
-
-const uro_login_editor_dialog_const = preload("uro_login_editor_dialog.gd")
-var uro_login_editor_dialog : uro_login_editor_dialog_const = null
 
 signal sign_in_submission_sent()
 signal sign_in_submission_complete(p_result)
@@ -23,46 +26,38 @@ func logout():
 	cfg.save(CONFIG_FILE_PATH)
 	
 	emit_signal("logout")
-
-func sign_in(username_or_email : String, password : String) -> void:
-	if godot_uro_api:
-		if godot_uro_api.busy:
-			return
 		
-		emit_signal("sign_in_submission_sent")
-		var token : String = godot_uro_api.sign_in(username_or_email, password)
-		
-		if token != "":
-			cfg.set_value("api", "token", token)
-			cfg.save(CONFIG_FILE_PATH)
-			emit_signal("sign_in_submission_complete", OK)
-		else:
-			logout()
-			emit_signal("sign_in_submission_complete", FAILED)
-
-
-func request_shard_list() -> void:
-	if godot_uro_api:
-		if godot_uro_api.busy:
-			emit_signal("request_shard_list_callback", Dictionary())
-			return Dictionary()
-			
-	var result = yield(godot_uro_api.get_shards(), "completed")
-	emit_signal("request_shard_list_callback", result)
+func get_host_and_port() -> Dictionary:
+	var host : String = ""
+	var port : int = 0
 	
-func show_login_dialog() -> void:
-	if Engine.is_editor_hint():
-		if uro_login_editor_dialog:
-			uro_login_editor_dialog.popup_centered()
-			
-func setup_editor_user_interfaces(p_editor_interface) -> void:
-	if Engine.is_editor_hint():
-		uro_login_editor_dialog = uro_login_editor_dialog_const.new()
-		p_editor_interface.get_editor_viewport().add_child(uro_login_editor_dialog)
-			
-func teardown_editor_user_interfaces():
-	if uro_login_editor_dialog:
-		uro_login_editor_dialog.queue_free()
+	if use_localhost:
+		host = godot_uro_helper_const.LOCALHOST_HOST
+		port = godot_uro_helper_const.LOCALHOST_PORT
+	else:
+		host = uro_host
+		port = uro_port
+		
+	return {"host":host, "port":port}
+	
+func using_ssl() -> bool:
+	return false
+		
+func setup_configuration() -> void:
+	if !ProjectSettings.has_setting("services/uro/use_localhost"):
+		ProjectSettings.set_setting("services/uro/use_localhost", use_localhost)
+	else:
+		use_localhost = ProjectSettings.get_setting("services/uro/use_localhost")
+	
+	if !ProjectSettings.has_setting("services/uro/host"):
+		ProjectSettings.set_setting("services/uro/host", uro_host)
+	else:
+		uro_host = ProjectSettings.get_setting("services/uro/host")
+		
+	if !ProjectSettings.has_setting("services/uro/port"):
+		ProjectSettings.set_setting("services/uro/port", uro_port)
+	else:
+		uro_port = ProjectSettings.get_setting("services/uro/port")
 		
 func _enter_tree():
 	cfg = ConfigFile.new()
@@ -71,7 +66,7 @@ func _enter_tree():
 	if godot_uro_api == null:
 		godot_uro_api = godot_uro_api_const.new()
 		
-	godot_uro_api.setup()
+	setup_configuration()
 	
 func _exit_tree():
-	godot_uro_api.teardown()
+	pass
