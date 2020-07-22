@@ -8,6 +8,7 @@ var cfg : ConfigFile = null
 var use_localhost : bool = true
 var uro_host : String = godot_uro_helper_const.DEFAULT_URO_HOST
 var uro_port : int = godot_uro_helper_const.DEFAULT_URO_PORT
+var uro_using_ssl : bool = true
 
 const CONFIG_FILE_PATH = "user://uro.ini"
 const godot_uro_api_const = preload("godot_uro_api.gd")
@@ -41,7 +42,7 @@ func get_host_and_port() -> Dictionary:
 	return {"host":host, "port":port}
 	
 func using_ssl() -> bool:
-	return false
+	return uro_using_ssl
 		
 func setup_configuration() -> void:
 	if !ProjectSettings.has_setting("services/uro/use_localhost"):
@@ -58,6 +59,11 @@ func setup_configuration() -> void:
 		ProjectSettings.set_setting("services/uro/port", uro_port)
 	else:
 		uro_port = ProjectSettings.get_setting("services/uro/port")
+		
+	if !ProjectSettings.has_setting("services/uro/use_ssl"):
+		ProjectSettings.set_setting("services/uro/use_ssl", uro_using_ssl)
+	else:
+		uro_using_ssl = ProjectSettings.get_setting("services/uro/use_ssl")
 		
 func _enter_tree():
 	cfg = ConfigFile.new()
