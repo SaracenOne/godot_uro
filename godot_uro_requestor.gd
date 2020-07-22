@@ -112,7 +112,7 @@ func request(p_path, p_payload, p_options : Dictionary = DEFAULT_OPTIONS) -> voi
 		if p_payload:
 			var encoding = _get_option(p_options, "encoding")
 			if encoding == "query":
-				uri += "?" + _dict_to_query_string(p_payload)
+				uri += "?%s" % _dict_to_query_string(p_payload)
 			elif encoding == "json":
 				headers.append("Content-Type: application/json")
 				encoded_payload = to_json(p_payload)

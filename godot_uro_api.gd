@@ -72,7 +72,8 @@ func delete_shard_async(p_id : String, p_port : int) -> String:
 	
 	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
 	
-	requestor.call_deferred("request", godot_uro_helper_const.get_api_path() + godot_uro_helper_const.SHARDS_PATH + "/" + p_id, query, {"method": HTTPClient.METHOD_DELETE, "encoding": "form"})
+	requestor.call_deferred("request", "%s%s/%s" % [godot_uro_helper_const.get_api_path(), godot_uro_helper_const.SHARDS_PATH, p_id], \
+	query, {"method": HTTPClient.METHOD_DELETE, "encoding": "form"})
 	var result = yield(requestor, "completed")
 	requestor.close()
 	
