@@ -3,13 +3,24 @@ extends Reference
 const godot_uro_request_const = preload("godot_uro_requestor.gd")
 const godot_uro_helper_const = preload("godot_uro_helper.gd")
 
+const USER_NAME = "user"
+const SHARD_NAME = "shard"
+
 #func cancel_async() -> void:
 #	yield(requestor.cancel(), "completed")
+
+static func populate_query(p_query_name : String, p_query_dictionary : Dictionary) -> Dictionary:
+	var query : Dictionary = {}
+
+	for key in p_query_dictionary.keys():
+		query["%s[%s]" % [p_query_name, key]] = p_query_dictionary[key]
+
+	return query
 
 func sign_in_async(username_or_email : String, password : String) -> String:
 	var host_and_port : Dictionary = GodotUro.get_host_and_port()
 		
-	var query = {
+	var query : Dictionary = {
 		"user[username_or_email]": username_or_email,
 		"user[password]": password,
 	}
@@ -36,15 +47,10 @@ func sign_in_async(username_or_email : String, password : String) -> String:
 			
 	return token
 	
-func create_shard_async(p_port : int, p_map : String, p_current_players : int, p_max_players : int) -> String:
+func create_shard_async(p_query : Dictionary) -> String:
 	var host_and_port : Dictionary = GodotUro.get_host_and_port()
 		
-	var query = {
-		"shard[port]": str(p_port),
-		"shard[map]": p_map,
-		"shard[current_users]": p_current_players,
-		"shard[max_users]": p_max_players
-	}
+	var query : Dictionary = populate_query(SHARD_NAME, p_query)
 	
 	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
 	
@@ -64,12 +70,11 @@ func create_shard_async(p_port : int, p_map : String, p_current_players : int, p
 			
 	return id
 	
-func delete_shard_async(p_id : String, p_port : int) -> String:
+func delete_shard_async(p_id : String, p_query : Dictionary) -> String:
 	var host_and_port : Dictionary = GodotUro.get_host_and_port()
 		
-	var query = {
-	}
-	
+	var query : Dictionary = populate_query(SHARD_NAME, p_query)
+
 	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
 	
 	requestor.call_deferred("request", "%s%s/%s" % [godot_uro_helper_const.get_api_path(), godot_uro_helper_const.SHARDS_PATH, p_id], \
@@ -89,11 +94,33 @@ func delete_shard_async(p_id : String, p_port : int) -> String:
 			
 	return id
 	
+func update_shard_async(p_query : Dictionary) -> String:
+	var host_and_port : Dictionary = GodotUro.get_host_and_port()
+	
+	var query : Dictionary = populate_query(SHARD_NAME, p_query)
+	
+	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
+	
+	requestor.call_deferred("request", godot_uro_helper_const.get_api_path() + godot_uro_helper_const.SHARDS_PATH, query, {"method": HTTPClient.METHOD_POST, "encoding": "form"})
+	var result = yield(requestor, "completed")
+	requestor.close()
+	
+	var result_dict : Dictionary = _handle_result(result)
+	var id : String = ""
+	
+	if result_dict.output != null:
+		var data : Dictionary = result_dict.output.data
+		if result_dict.error_code == godot_uro_helper_const.symbolic_errors.OK:
+			var data_id = data.get("id")
+			if data_id is String:
+				id = data_id
+			
+	return id
+	
 func get_shards() -> Dictionary:
 	var host_and_port : Dictionary = GodotUro.get_host_and_port()
 		
-	var query = {
-	}
+	var query : Dictionary = populate_query(SHARD_NAME, {})
 	
 	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
 	
