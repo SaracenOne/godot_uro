@@ -94,14 +94,15 @@ func delete_shard_async(p_id : String, p_query : Dictionary) -> String:
 			
 	return id
 	
-func update_shard_async(p_query : Dictionary) -> String:
+func update_shard_async(p_id : String, p_query : Dictionary) -> String:
 	var host_and_port : Dictionary = GodotUro.get_host_and_port()
 	
 	var query : Dictionary = populate_query(SHARD_NAME, p_query)
 	
 	var requestor = godot_uro_request_const.new(host_and_port.host, host_and_port.port, GodotUro.using_ssl())
 	
-	requestor.call_deferred("request", godot_uro_helper_const.get_api_path() + godot_uro_helper_const.SHARDS_PATH, query, {"method": HTTPClient.METHOD_POST, "encoding": "form"})
+	requestor.call_deferred("request", "%s%s/%s" % [godot_uro_helper_const.get_api_path(), godot_uro_helper_const.SHARDS_PATH, p_id], \
+	query, {"method": HTTPClient.METHOD_PUT, "encoding": "form"})
 	var result = yield(requestor, "completed")
 	requestor.close()
 	

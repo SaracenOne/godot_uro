@@ -27,6 +27,9 @@ enum symbolic_errors {
 	NOT_AUTHORIZED
 }
 
+const UNTITLED_SHARD = "UNTITLED_SHARD"
+const UNKNOWN_MAP = "UNKNOWN_MAP"
+
 static func get_api_path() -> String:
 	return API_PATH + API_VERSION
 	
@@ -45,7 +48,8 @@ static func process_shards_json(p_input) -> Dictionary:
 						var new_shard : Dictionary
 						new_shard.address = shard.get("address", "")
 						new_shard.port = shard.get("port", -1)
-						new_shard.map = shard.get("map", "")
+						new_shard.map = shard.get("map", UNKNOWN_MAP)
+						new_shard.name = shard.get("name", UNTITLED_SHARD)
 						new_shard.current_users = shard.get("current_users", 0)
 						new_shard.max_users = shard.get("max_users", 0)
 						new_shards.push_back(new_shard)
