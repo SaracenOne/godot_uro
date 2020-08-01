@@ -33,6 +33,13 @@ const UNKNOWN_MAP = "UNKNOWN_MAP"
 static func get_api_path() -> String:
 	return API_PATH + API_VERSION
 	
+static func get_value_of_type(p_data : Dictionary, p_key : String, p_type : int, p_default_value):
+	var value = p_data.get(p_key, p_default_value)
+	if typeof(value) == p_type:
+		return value
+	else:
+		return p_default_value
+	
 static func process_shards_json(p_input) -> Dictionary:
 	var result_dict : Dictionary = {}
 	var new_shards : Array = []
@@ -46,12 +53,13 @@ static func process_shards_json(p_input) -> Dictionary:
 				for shard in shards:
 					if shard is Dictionary:
 						var new_shard : Dictionary
-						new_shard.address = shard.get("address", "")
-						new_shard.port = shard.get("port", -1)
-						new_shard.map = shard.get("map", UNKNOWN_MAP)
-						new_shard.name = shard.get("name", UNTITLED_SHARD)
-						new_shard.current_users = shard.get("current_users", 0)
-						new_shard.max_users = shard.get("max_users", 0)
+						new_shard["address"] = get_value_of_type(shard, "address", TYPE_STRING, "")
+						new_shard["port"] = get_value_of_type(shard, "port", TYPE_REAL, -1)
+						new_shard["map"] = get_value_of_type(shard, "map", TYPE_STRING, UNKNOWN_MAP)
+						new_shard["name"] = get_value_of_type(shard, "name", TYPE_STRING, UNTITLED_SHARD)
+						new_shard["current_users"] = get_value_of_type(shard, "current_users", TYPE_REAL, 0)
+						new_shard["max_users"] = get_value_of_type(shard, "max_users", TYPE_REAL, 0)
+						
 						new_shards.push_back(new_shard)
 	
 	result_dict.result = p_input.error_code
