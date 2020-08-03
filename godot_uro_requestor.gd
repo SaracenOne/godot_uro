@@ -257,18 +257,20 @@ func request(p_path, p_payload, p_options : Dictionary = DEFAULT_OPTIONS) -> voi
 	if file:
 		file.close()
 
-	var data
+	var data = null
 	if file:
 		data = bytes
 	else:
 		if response_body:
-			var json_parse_result : JSONParseResult = JSON.parse(response_body)
-			if json_parse_result.error == OK:
-				data = json_parse_result.result
+			var json_validation_result : String = validate_json(response_body)
+			if json_validation_result == "":
+				var json_parse_result : JSONParseResult = JSON.parse(response_body)
+				if json_parse_result.error == OK:
+					data = json_parse_result.result
 			else:
-				data = null
-		else:
-			data = null
+				printerr("JSON validation result: %s" % json_validation_result)
+				
+				
 	emit_signal("completed", Result.new(response_code, data))
 		
 func _get_option(options, key):
