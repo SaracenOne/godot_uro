@@ -6,6 +6,16 @@ var editor_interface: EditorInterface = null
 var button: Button = null
 
 
+func _init() -> void:
+	print("Initialising GodotUro plugin")
+
+
+func _notification(p_notification: int):
+	match p_notification:
+		NOTIFICATION_PREDELETE:
+			print("Destroying GodotUro plugin")
+
+
 func get_name() -> String:
 	return "GodotUro"
 
