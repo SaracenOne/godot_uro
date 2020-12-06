@@ -45,8 +45,8 @@ func _init(p_hostname: String, p_port: int = -1, p_use_ssl: bool = true) -> void
 	use_ssl = p_use_ssl
 
 	has_enhanced_qs_from_dict = http.query_string_from_dict({"a": null}) == "a"
-
-
+	
+	
 func cancel():
 	if busy:
 		print("uro request cancelled!")
@@ -54,28 +54,28 @@ func cancel():
 	else:
 		call_deferred("emit_signal", "completed", null)
 	yield(self, "completed")
-
-
-func close() -> void:
+	
+	
+func term() -> void:
 	terminated = true
 	http.close()
-
-
-func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void:
+	
+	
+func request(p_path, p_payload, p_token: String, p_options: Dictionary = DEFAULT_OPTIONS) -> void:
 	while busy and ! terminated:
 		yield(Engine.get_main_loop(), "idle_frame")
 		if terminated:
 			return
-
+			
 	var status: int = HTTPClient.STATUS_DISCONNECTED
 	busy = true
-
+	
 	if cancelled:
 		cancelled = false
 		busy = false
 		emit_signal("completed", null)
 		return
-
+		
 	var reconnect_tries: int = 3
 	while reconnect_tries:
 		http.poll()
@@ -87,13 +87,13 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 					return
 				http.poll()
 				status = http.get_status()
-
+				
 				if cancelled:
 					cancelled = false
 					busy = false
 					emit_signal("completed", null)
 					return
-
+					
 				if (
 					status
 					in [
@@ -105,19 +105,22 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 					busy = false
 					emit_signal("completed")
 					return
-
+					
 				if status == HTTPClient.STATUS_CONNECTED:
 					break
-
+					
 		if cancelled:
 			cancelled = false
 			busy = false
 			emit_signal("completed", null)
-
+			
 		var uri: String = p_path
 		var encoded_payload: String = ""
 		var headers: Array = []
-
+		
+		if p_token != "":
+			headers.push_back("Authorization: %s" % p_token)
+			
 		if p_payload:
 			var encoding = _get_option(p_options, "encoding")
 			if encoding == "query":
@@ -128,11 +131,11 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			elif encoding == "form":
 				headers.append("Content-Type: application/x-www-form-urlencoded")
 				encoded_payload = _dict_to_query_string(p_payload)
-
+				
 		var token = _get_option(p_options, "token")
 		if token:
 			headers.append("Authorization: Bearer %s" % token)
-
+			
 		http.request(_get_option(p_options, "method"), uri, headers, encoded_payload)
 		http.poll()
 		status = http.get_status()
@@ -145,19 +148,19 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			]
 		):
 			break
-
+			
 		reconnect_tries -= 1
 		http.close()
-
+		
 		if reconnect_tries == 0:
 			pass
-
+			
 	if cancelled:
 		cancelled = false
 		busy = false
 		emit_signal("completed", null)
 		return
-
+		
 	while true:
 		yield(Engine.get_main_loop(), "idle_frame")
 		if terminated:
@@ -168,7 +171,7 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			busy = false
 			emit_signal("completed", null)
 			return
-
+			
 		http.poll()
 		status = http.get_status()
 		if (
@@ -181,7 +184,7 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			busy = false
 			emit_signal("completed", Result.new(-1))
 			return
-
+			
 		if (
 			status
 			in [
@@ -190,35 +193,35 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			]
 		):
 			break
-
+			
 	var response_code: int = http.get_response_code()
 	var response_headers: Dictionary = http.get_response_headers_as_dictionary()
-
+	
 	var response_body
-
+	
 	var file
 	var bytes
 	var total_bytes
 	var out_path = _get_option(p_options, "download_to")
-
+	
 	if out_path:
 		bytes = 0
 		if response_headers.has("Content-Length"):
 			total_bytes = int(response_headers["Content-Length"])
 		else:
 			total_bytes = -1
-
+			
 		file = File.new()
 		if file.open(out_path, File.WRITE) != OK:
 			busy = false
 			emit_signal("completed", Result.new(-1))
 			return
-
+			
 	var last_yield = OS.get_ticks_msec()
-
+	
 	while status == HTTPClient.STATUS_BODY:
 		var chunk = http.read_response_body_chunk()
-
+		
 		if file:
 			file.store_buffer(chunk)
 			bytes += chunk.size()
@@ -226,7 +229,7 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 		else:
 			response_body = response_body if response_body else ""
 			response_body += chunk.get_string_from_utf8()
-
+			
 		var time = OS.get_ticks_msec()
 		if time - last_yield > YIELD_PERIOD_MS:
 			yield(Engine.get_main_loop(), "idle_frame")
@@ -243,7 +246,7 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 				busy = false
 				emit_signal("completed", null)
 				return
-
+				
 		http.poll()
 		status = http.get_status()
 		if (
@@ -256,7 +259,7 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 			busy = false
 			emit_signal("completed", Result.new(-1))
 			return
-
+			
 	yield(Engine.get_main_loop(), "idle_frame")
 	if terminated:
 		if file:
@@ -270,12 +273,12 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 		busy = false
 		emit_signal("completed", null)
 		return
-
+		
 	busy = false
-
+	
 	if file:
 		file.close()
-
+		
 	var data = null
 	if file:
 		data = bytes
@@ -288,18 +291,18 @@ func request(p_path, p_payload, p_options: Dictionary = DEFAULT_OPTIONS) -> void
 					data = json_parse_result.result
 			else:
 				printerr("JSON validation result: %s" % json_validation_result)
-
+				
 	emit_signal("completed", Result.new(response_code, data))
-
-
+	
+	
 func _get_option(options, key):
 	return options[key] if options.has(key) else DEFAULT_OPTIONS[key]
-
-
+	
+	
 func _dict_to_query_string(p_dictionary) -> String:
 	if has_enhanced_qs_from_dict:
 		return http.query_string_from_dict(p_dictionary)
-
+		
 	# For 3.0
 	var qs = ""
 	for key in p_dictionary:
